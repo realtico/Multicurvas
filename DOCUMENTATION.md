@@ -218,6 +218,8 @@ extern LocaleConfig parser_locale;  /* Configuração global no parser.c */
 
 **Responsabilidade**: Funções de inspeção e visualização para debug/aprendizado.
 
+**Observação importante**: O `debug_print_bytecode()` gera bytecode compactado (1 byte por token), mas os valores numéricos de `TOKEN_NUMBER` precisam ser tratados separadamente em uma implementação completa. O bytecode atual é para visualização e aprendizado.
+
 #### Funções
 
 ##### `void debug_print_hexdump(const unsigned char *data, int len)`
@@ -249,6 +251,32 @@ extern LocaleConfig parser_locale;  /* Configuração global no parser.c */
   ```
 - **Uso**: Debug/aprendizado para entender tokenização
 
+##### `void debug_print_bytecode(const TokenBuffer *buf)`
+- **Objetivo**: Gerar e exibir bytecode compactado dos tokens (sem padding de struct)
+- **Entrada**: `buf` (const TokenBuffer*) - buffer de tokens
+- **Saída**: Nenhuma (imprime em stdout)
+- **Formato**:
+  ```
+  --- BYTECODE COMPACTADO ---
+  Sequência de bytes: 96 28 81 29 2A 80 2B 81 FF 
+  
+  Interpretação:
+    [0] 0x96 = 150  ← sin
+    [1] 0x28 =  40  ← (
+    [2] 0x81 = 129  ← x
+    [3] 0x29 =  41  ← )
+    [4] 0x2A =  42  ← *
+    [5] 0x80 = 128  ← NUMBER (valor: 2)
+    [6] 0x2B =  43  ← +
+    [7] 0x81 = 129  ← x
+    [8] 0xFF = 255  ← END
+  
+  Hex dump compactado:
+  0000: 96 28 81 29 2A 80 2B 81 FF
+  ```
+- **Uso**: Visualizar bytecode real sem overhead de structs (ideal para entender compactação)
+- **Diferença**: Extrai apenas os bytes de TokenType, não toda a struct Token (16 bytes → 1 byte por token)
+
 ##### `const char* debug_token_name(TokenType type)`
 - **Objetivo**: Converter TokenType em string descritiva
 - **Entrada**: `type` (TokenType) - tipo do token
@@ -270,7 +298,7 @@ extern LocaleConfig parser_locale;  /* Configuração global no parser.c */
 1. Função auxiliar `test_expression(const char *expr)` que:
    - Tokeniza a expressão
    - Exibe tokens em formato legível
-   - Exibe hexdump
+   - Exibe bytecode compactado
    - Tenta conversão para RPN (stub)
    - Trata erros
 
