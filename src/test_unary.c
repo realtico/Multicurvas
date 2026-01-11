@@ -14,10 +14,18 @@ int main(void) {
         "sin(-x)",
         "-2*x",
         "x+-3",
-        "(-x)^2"
+        "(-x)^2",
+        "+x",
+        "x+ +3",
+        "2*(+x)"
+        ,"--x",
+        "-+x",
+        "+-x",
+        "---x"
     };
-    
-    for (int t = 0; t < 8; t++) {
+
+    int test_count = sizeof(tests) / sizeof(tests[0]);
+    for (int t = 0; t < test_count; t++) {
         const char *expr = tests[t];
         printf("\n========================================\n");
         printf("Testando: %s\n", expr);
@@ -39,6 +47,7 @@ int main(void) {
             parser_free_buffer(&tokens);
             continue;
         }
+        
         
         printf("✓ Parse OK - Testando avaliação:\n");
         EvalResult result = evaluator_eval_rpn(&rpn, 2.0);

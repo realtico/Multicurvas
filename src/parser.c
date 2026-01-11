@@ -208,7 +208,39 @@ ParserError parser_tokenize(const char *expr, TokenBuffer *output) {
         
         /* Caracteres especiais e operadores */
         switch (expr[i]) {
-            case '+': case '*': case '/': case '^':
+            /* Tratamento especial para '+' porque pode ser unário */
+            case '+': {
+                /* Detecta se é operador unário (positivo) */
+                int is_unary_plus = 0;
+                if (output->size == 0) {
+                    is_unary_plus = 1;
+                } else {
+                    TokenType prev = output->tokens[output->size - 1].type;
+                    if (prev == TOKEN_LPAREN || prev == TOKEN_PLUS || 
+                        prev == TOKEN_MINUS || prev == TOKEN_MULT || 
+                        prev == TOKEN_DIV || prev == TOKEN_POW ||
+                        prev == TOKEN_NEG) {
+                        is_unary_plus = 1;
+                    }
+                }
+
+                if (is_unary_plus) {
+                    /* Unary plus is a no-op: skip the '+' token entirely */
+                    i++;
+                    break;
+                }
+
+                /* Caso não-unário: adiciona o operador plus normalmente */
+                token.type = TOKEN_PLUS;
+                token.value_index = 0;
+                if (!parser_add_token(output, token)) {
+                    parser_free_buffer(output);
+                    return PARSER_MEMORY_ERROR;
+                }
+                i++;
+                break;
+            }
+            case '*': case '/': case '^':
             case '(': case ')':
                 token.type = (TokenType)expr[i];
                 token.value_index = 0;
@@ -219,38 +251,34 @@ ParserError parser_tokenize(const char *expr, TokenBuffer *output) {
                 i++;
                 break;
             
-            case '-':
+            case '-': {
                 /* Detecta se é operador unário (negativo) */
-                /* É unário se: início da expressão, depois de '(', ou depois de operador */
                 int is_unary = 0;
                 if (output->size == 0) {
-                    /* Início da expressão */
                     is_unary = 1;
                 } else {
-                    /* Verifica token anterior */
                     TokenType prev = output->tokens[output->size - 1].type;
                     if (prev == TOKEN_LPAREN || prev == TOKEN_PLUS || 
                         prev == TOKEN_MINUS || prev == TOKEN_MULT || 
-                        prev == TOKEN_DIV || prev == TOKEN_POW) {
+                        prev == TOKEN_DIV || prev == TOKEN_POW ||
+                        prev == TOKEN_NEG) {
                         is_unary = 1;
                     }
                 }
-                
+
                 if (is_unary) {
-                    /* Insere 0 antes do menos para transformar em "0 - x" */
-                    int zero_idx = parser_add_value(output, 0.0);
-                    if (zero_idx < 0) {
+                    /* Emite token de negação unária (prefix) */
+                    token.type = TOKEN_NEG;
+                    token.value_index = 0;
+                    if (!parser_add_token(output, token)) {
                         parser_free_buffer(output);
                         return PARSER_MEMORY_ERROR;
                     }
-                    Token zero_token = {TOKEN_NUMBER, (uint16_t)zero_idx};
-                    if (!parser_add_token(output, zero_token)) {
-                        parser_free_buffer(output);
-                        return PARSER_MEMORY_ERROR;
-                    }
+                    i++;
+                    break;
                 }
-                
-                /* Adiciona o operador menos */
+
+                /* Caso binário: adiciona o operador menos */
                 token.type = TOKEN_MINUS;
                 token.value_index = 0;
                 if (!parser_add_token(output, token)) {
@@ -259,6 +287,7 @@ ParserError parser_tokenize(const char *expr, TokenBuffer *output) {
                 }
                 i++;
                 break;
+            }
             
             default:
                 /* Caractere inválido */
@@ -334,6 +363,8 @@ static int get_precedence(TokenType type) {
     switch (type) {
         case TOKEN_POW:
             return 4;
+        case TOKEN_NEG:
+            return 5; /* Negação unária tem precedência maior */
         case TOKEN_MULT:
         case TOKEN_DIV:
             return 3;
@@ -351,7 +382,8 @@ static int get_precedence(TokenType type) {
 /* Verifica se o token é um operador */
 static int is_operator(TokenType type) {
     return (type == TOKEN_PLUS || type == TOKEN_MINUS || 
-            type == TOKEN_MULT || type == TOKEN_DIV || type == TOKEN_POW);
+            type == TOKEN_MULT || type == TOKEN_DIV || type == TOKEN_POW ||
+            type == TOKEN_NEG);
 }
 
 /* Verifica se o token é uma função (usa range para extensibilidade) */
@@ -449,7 +481,7 @@ ParserError parser_to_rpn(TokenBuffer *tokens, TokenBuffer *rpn) {
                 
                 /* Para ^: apenas desempilha se precedência for MAIOR (associativo à direita) */
                 /* Para outros: desempilha se precedência for MAIOR OU IGUAL */
-                if (type == TOKEN_POW) {
+                if (type == TOKEN_POW || type == TOKEN_NEG) {
                     if (stack_prec <= prec) break;
                 } else {
                     if (stack_prec < prec) break;

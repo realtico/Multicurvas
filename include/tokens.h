@@ -55,6 +55,7 @@ typedef enum {
     TOKEN_CEIL       = 177,
     TOKEN_FLOOR      = 178,
     TOKEN_FRAC       = 179,
+    TOKEN_NEG        = 180,
     /* Slots 179-199 disponíveis para novas funções */
         
     TOKEN_END        = 255,  /* Fim da expressão */

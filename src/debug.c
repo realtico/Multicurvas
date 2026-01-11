@@ -52,6 +52,7 @@ const char* debug_token_name(TokenType type) {
         case TOKEN_CEIL:         return "ceil";
         case TOKEN_FLOOR:        return "floor";
         case TOKEN_FRAC:         return "frac";
+        case TOKEN_NEG:          return "neg";
         case TOKEN_END:          return "END";
         case TOKEN_ERROR:        return "ERROR";
         default:

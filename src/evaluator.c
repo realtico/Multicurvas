@@ -183,6 +183,11 @@ static int is_binary_operator(TokenType type) {
             type == TOKEN_MULT || type == TOKEN_DIV || type == TOKEN_POW);
 }
 
+/* Verifica se token é operador unário (ex: NEG) */
+static int is_unary_operator(TokenType type) {
+    return (type == TOKEN_NEG);
+}
+
 /* Verifica se token é função unária */
 static int is_unary_function(TokenType type) {
     return (type >= TOKEN_FUNCTION_START && type <= TOKEN_FUNCTION_END);
@@ -261,6 +266,17 @@ EvalResult evaluator_eval_rpn(const TokenBuffer *rpn, double var_value) {
             }
             
             stack[++stack_top] = op_result.value;
+        }
+        /* Operador unário (ex: NEG): desempilha 1, aplica e empilha */
+        else if (is_unary_operator(type)) {
+            if (stack_top < 0) {
+                result.error = EVAL_STACK_ERROR;
+                return result;
+            }
+
+            double arg = stack[stack_top--];
+            /* Apenas negação por enquanto */
+            stack[++stack_top] = -arg;
         }
         /* Função unária: desempilha 1, calcula, empilha */
         else if (is_unary_function(type)) {
