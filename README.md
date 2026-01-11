@@ -14,6 +14,7 @@ Implementar um sistema que permita:
 
 ### ✅ Fase 1: Tokenização (Completa)
 - Operadores: `+`, `-`, `*`, `/`, `^`
+- **Operador unário `-`** (negativo): `-x`, `2*(-x)`, `sin(-x)` funcionam corretamente
 - **20 Funções**: `sin`, `cos`, `tan`, `abs`, `sqrt`, `exp`, `log`, `log10`, `sinh`, `cosh`, `tanh`, `asin`, `acos`, `atan`, `asinh`, `acosh`, `atanh`, `ceil`, `floor`, `frac`
 - Constantes: `pi`, `e`
 - Variáveis: `x`, `theta`, `t`

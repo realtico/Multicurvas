@@ -185,6 +185,11 @@ extern LocaleConfig parser_locale;  /* Configuração global no parser.c */
 - **Saída**: 
   - `ParserError`: Tipo de sucesso ou erro
   - `output`: Preenchido com tokens se sucesso
+- **Características especiais**:
+  - **Operador unário `-`**: Detecta automaticamente quando `-` é negação (unário) vs subtração (binário)
+    - Critérios: início da expressão, após `(`, ou após outro operador
+    - Implementação: insere `TOKEN_NUMBER(0)` antes do `-`, transformando `-x` em `0 - x`
+    - Exemplos: `-x`, `2*(-x)`, `sin(-x)`, `x+-3` todos funcionam corretamente
 - **Validações internas**:
   1. Tokeniza caractere por caractere
   2. Valida variáveis (não mistura x, theta, t)
@@ -606,10 +611,11 @@ double resultado
 
 ## Checklist de Funcionalidades
 
-### Fase 1: Tokenização ✅
+### ✅ Fase 1: Tokenização (Completa)
 - [x] Tokenização de operadores básicos (+, -, *, /, ^)
+- [x] **Suporte a operador unário** - (negativo)
 - [x] Tokenização de números (com suporte a locale)
-- [x] Tokenização de funções (sin, cos, tan, abs, sqrt)
+- [x] Tokenização de funções (20 funções matemáticas)
 - [x] Tokenização de constantes (pi, e)
 - [x] Tokenização de variáveis (x, theta, t)
 - [x] Detecção de parênteses

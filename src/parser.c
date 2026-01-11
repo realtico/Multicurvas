@@ -208,9 +208,50 @@ ParserError parser_tokenize(const char *expr, TokenBuffer *output) {
         
         /* Caracteres especiais e operadores */
         switch (expr[i]) {
-            case '+': case '-': case '*': case '/': case '^':
+            case '+': case '*': case '/': case '^':
             case '(': case ')':
                 token.type = (TokenType)expr[i];
+                token.value_index = 0;
+                if (!parser_add_token(output, token)) {
+                    parser_free_buffer(output);
+                    return PARSER_MEMORY_ERROR;
+                }
+                i++;
+                break;
+            
+            case '-':
+                /* Detecta se é operador unário (negativo) */
+                /* É unário se: início da expressão, depois de '(', ou depois de operador */
+                int is_unary = 0;
+                if (output->size == 0) {
+                    /* Início da expressão */
+                    is_unary = 1;
+                } else {
+                    /* Verifica token anterior */
+                    TokenType prev = output->tokens[output->size - 1].type;
+                    if (prev == TOKEN_LPAREN || prev == TOKEN_PLUS || 
+                        prev == TOKEN_MINUS || prev == TOKEN_MULT || 
+                        prev == TOKEN_DIV || prev == TOKEN_POW) {
+                        is_unary = 1;
+                    }
+                }
+                
+                if (is_unary) {
+                    /* Insere 0 antes do menos para transformar em "0 - x" */
+                    int zero_idx = parser_add_value(output, 0.0);
+                    if (zero_idx < 0) {
+                        parser_free_buffer(output);
+                        return PARSER_MEMORY_ERROR;
+                    }
+                    Token zero_token = {TOKEN_NUMBER, (uint16_t)zero_idx};
+                    if (!parser_add_token(output, zero_token)) {
+                        parser_free_buffer(output);
+                        return PARSER_MEMORY_ERROR;
+                    }
+                }
+                
+                /* Adiciona o operador menos */
+                token.type = TOKEN_MINUS;
                 token.value_index = 0;
                 if (!parser_add_token(output, token)) {
                     parser_free_buffer(output);
