@@ -59,7 +59,7 @@ typedef enum {
     /* Slots 179-199 disponíveis para novas funções */
         
     TOKEN_END        = 255,  /* Fim da expressão */
-    TOKEN_ERROR      = 256   /* Erro de parsing */
+    TOKEN_ERROR      = 254   /* Erro de parsing (reservado) */
 } TokenType;
 
 /* Ranges para extensibilidade (usados em is_variable, is_constant, is_function) */
@@ -73,7 +73,7 @@ typedef enum {
 #define TOKEN_FUNCTION_END    199
 
 typedef struct {
-    TokenType type;
+    uint8_t type;          /* Armazenado em 1 byte para melhor densidade de cache */
     uint16_t value_index;  /* Índice no array de valores (apenas para TOKEN_NUMBER) */
 } Token;
 
