@@ -56,7 +56,14 @@ Implementar um sistema que permita:
 - Suporte a coordenadas retangulares, polares e paramétricas
 - Detecção de descontinuidades (divisão por zero)
 
-##  all
+## 🚀 Quick Start
+
+### Compilação
+
+```bash
+cd /home/hlpp/work/Multicurvas
+make clean
+make all
 ```
 
 ### Execução
@@ -74,9 +81,21 @@ Implementar um sistema que permita:
 **Análise de memória:**
 ```bash
 ./build/memory_test
-make
 ```
-# Programa de teste/protótipo
+
+### Limpeza
+
+```bash
+make clean
+```
+
+## 📂 Estrutura do Projeto
+
+```
+Multicurvas/
+├── src/
+│   ├── main.c           # Programa de teste/protótipo
+>>>>>>> ab2979c (Fix: Corrige erros de formatação nos arquivos .md)
 │   ├── main_benchmark.c # Benchmark de performance
 │   ├── benchmark.c      # Testes de integração numérica
 │   ├── memory_test.c    # Análise de uso de memória

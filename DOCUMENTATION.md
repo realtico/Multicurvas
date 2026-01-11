@@ -565,84 +565,29 @@ Overhead parseado:    2.56x
 ### Shunting Yard (Dijkstra)
 
 Para uma explicação detalhada e completa do algoritmo Shunting-Yard com exemplos passo a passo, consulte: **[SHUNTING_YARD.md](SHUNTING_YARD.md)**
+
+---
+
+## Fluxo de Dados
+
+```
+String de entrada
+       ↓
+parser_tokenize()
+       ↓
+[Validações] → Erro → return PARSER_ERROR
+       ↓
+TokenBuffer com tokens
+       ↓
+debug_print_tokens() [opcional]
+       ↓
+parser_to_rpn() [Fase 2]
+       ↓
 TokenBuffer em RPN
        ↓
 evaluator_rpn() [Fase 3]
        ↓
 double resultado
-```
-
----
-
-## Algoritmos Implementados
-
-### Shunting Yard (Dijkstra)
-
-**Finalidade**: Converter expressões **infixas** (notação normal) para **RPN** (Reverse Polish Notation / Notação Polonesa Reversa).
-
-**Por que RPN?**
-- Mais fácil de avaliar (sem necessidade de parênteses ou precedência)
-- Avaliação em pilha única
-- Compacto e eficiente
-
-**Exemplo de conversão**:
-```
-Infixa:  sin(x) * 2 + x
-RPN:     x sin 2 * x +
-```
-
-**Como funciona**:
-
-1. **Estruturas**:
-   - Pilha de operadores (stack)
-   - Fila de saída (output)
-
-2. **Regras de processamento**:
-
-   | Token | Ação |
-   |-------|------|
-   | Número/Variável/Constante | → saída direta |
-   | Função (`sin`, `cos`, etc.) | → empilha |
-   | `(` | → empilha |
-   | `)` | Desempilha até `(`, depois aplica função se houver |
-   | Operador | Desempilha operadores de maior/igual precedência, depois empilha |
-
-3. **Precedências** (maior = mais prioritário):
-   - `^` (potência): 4
-   - `*`, `/`: 3
-   - `+`, `-`: 2
-
-4. **Associatividade**:
-   - `^`: Associativo à **direita** (2^3^4 = 2^(3^4))
-   - Outros: Associativos à **esquerda** (2-3-4 = (2-3)-4)
-
-**Exemplo passo a passo**: `sin(x) * 2 + x`
-
-```
-Token    | Pilha        | Saída
----------|--------------|------------------
-sin      | [sin]        | []
-(        | [sin, (]     | []
-x        | [sin, (]     | [x]
-)        | [sin]        | [x, sin]      ← aplica sin após )
-*        | [*]          | [x, sin]
-2        | [*]          | [x, sin, 2]
-+        | [+]          | [x, sin, 2, *] ← * tem maior precedência
-x        | [+]          | [x, sin, 2, *, x]
-END      | []           | [x, sin, 2, *, x, +] ← desempilha tudo
-```
-
-**Resultado RPN**: `x sin 2 * x +`
-
-**Avaliação da RPN** (será implementado na Fase 3):
-```
-Pilha de valores:
-x          → [5]           (assumindo x=5)
-sin        → [0.958...]    (sin(5))
-2          → [0.958, 2]
-*          → [1.916...]    (0.958 * 2)
-x          → [1.916, 5]
-+          → [6.916...]    (1.916 + 5)
 ```
 
 ---
@@ -668,18 +613,23 @@ x          → [1.916, 5]
 - [x] Suporte a funções
 
 ### Fase 3: Avaliação ✅
-- [x] Avaliador de RPN (pilha de doubles)
+- [x] Avaliador de RPN (pilha estática)
 - [x] Substituição de variáveis
 - [x] Cálculo de constantes (pi, e)
 - [x] Tratamento de erros matemáticos (divisão por zero, domínio, overflow)
-- [x] 19 funções implementadas
+- [x] 20 funções implementadas
 
-### Fase 4: Benchmark e Validação ⏳
-- [ ] Comparar performance: ODE hardcoded vs parseada
-- [ ] Método de Euler para teste
-- [ ] Validação numérica
+### Fase 4: Otimizações ✅
+- [x] Token compacto (8 bytes)
+- [x] Pilha estática de avaliação
+- [x] Função exp() nativa
 
-### Fase 5: Interface de Plotagem ⏳
+### Fase 5: Benchmark ✅
+- [x] Integração numérica (10M pontos)
+- [x] Comparação hardcoded vs parseado
+- [x] Análise de memória
+
+### Fase 6: Interface de Plotagem ⏳
 - [ ] Plotagem de gráficos 2D
 - [ ] Coordenadas retangulares, polares, paramétricas
 - [ ] Detecção de descontinuidades
