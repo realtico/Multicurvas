@@ -119,3 +119,16 @@ void run_benchmark(void) {
     parser_free_buffer(&tokens);
     parser_free_buffer(&rpn);
 }
+
+
+int main(void) {
+    printf("╔═══════════════════════════════════════════════════════════╗\n");
+    printf("║      MULTICURVAS - Benchmark de Performance              ║\n");
+    printf("╚═══════════════════════════════════════════════════════════╝\n\n");
+    parser_set_locale(LOCALE_POINT);
+    run_benchmark();
+    printf("\n╔═══════════════════════════════════════════════════════════╗\n");
+    printf("║                  Benchmark Completo                       ║\n");
+    printf("╚═══════════════════════════════════════════════════════════╝\n");
+    return 0;
+}
