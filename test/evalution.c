@@ -3,9 +3,10 @@
 #include "parser.h"
 #include "evaluator.h"
 #include "debug.h"
+#include "assert.h"
 
 /* Função helper para testar uma expressão */
-static void test_expression(const char *expr) {
+static void test_expression(const char *expr, ParserError expected_parser_err, EvalError expected_eval_err) {
     printf("\n========================================\n");
     printf("Testando: \"%s\"\n", expr);
     printf("========================================\n");
@@ -15,7 +16,7 @@ static void test_expression(const char *expr) {
     
     /* Tokeniza */
     ParserError err = parser_tokenize(expr, &tokens);
-    
+    assert(err == expected_parser_err);
     if (err != PARSER_OK) {
         printf("ERRO: ");
         switch (err) {
@@ -36,7 +37,7 @@ static void test_expression(const char *expr) {
                 break;
             default:
                 printf("Erro desconhecido (%d)\n", err);
-        }
+        }        
         return;
     }
     
@@ -48,6 +49,7 @@ static void test_expression(const char *expr) {
     
     /* Converte para RPN */
     err = parser_to_rpn(&tokens, &rpn);
+    assert(err == expected_parser_err);
     if (err == PARSER_OK) {
         printf("✓ Conversão para RPN OK\n");
         debug_print_tokens(&rpn);
@@ -57,9 +59,11 @@ static void test_expression(const char *expr) {
         printf("\n--- AVALIAÇÃO (variável = %.2f) ---\n", test_value);
         
         EvalResult eval = evaluator_eval_rpn(&rpn, test_value);
+        assert(eval.error == expected_eval_err);
         
         if (eval.error == EVAL_OK) {
             printf("✓ Resultado: %.6g\n", eval.value);
+            
         } else {
             printf("✗ Erro de avaliação: ");
             switch (eval.error) {
@@ -88,54 +92,54 @@ static void test_expression(const char *expr) {
 
 int main(void) {
     printf("╔═══════════════════════════════════════════════════════════╗\n");
-    printf("║    MULTICURVAS - Parser de Expressões Matemáticas        ║\n");
-    printf("║              Fase 1: Tokenizador + RPN                   ║\n");
+    printf("║     MULTICURVAS - Parser de Expressões Matemáticas        ║\n");
+    printf("║               Fase 1: Tokenizador + RPN                   ║\n");
     printf("╚═══════════════════════════════════════════════════════════╝\n");
     
     /* TESTE 1: Com locale POINT (padrão) */
     printf("\n▶▶▶ TESTE COM LOCALE POINT (ponto decimal) ▶▶▶\n");
     parser_set_locale(LOCALE_POINT);
     
-    test_expression("sin(x)*2+x");
-    test_expression("9*(theta-pi/2)");
-    test_expression("2*e^(-t/2)");
-    test_expression("3.14159");
-    test_expression("2.5*x+1.75");
-    test_expression("0.5^2");
+    test_expression("sin(x)*2+x", PARSER_OK, EVAL_OK);
+    test_expression("9*(theta-pi/2)", PARSER_OK, EVAL_OK);
+    test_expression("2*e^(-t/2)", PARSER_OK, EVAL_OK);
+    test_expression("3.14159", PARSER_OK, EVAL_OK);
+    test_expression("2.5*x+1.75", PARSER_OK, EVAL_OK);
+    test_expression("0.5^2", PARSER_OK, EVAL_OK);
     
     /* TESTE 2: Com locale COMMA */
     printf("\n\n▶▶▶ TESTE COM LOCALE COMMA (vírgula decimal) ▶▶▶\n");
     parser_set_locale(LOCALE_COMMA);
     
-    test_expression("sin(x)*2+x");
-    test_expression("9*(theta-pi/2)");
-    test_expression("2*e^(-t/2)");
-    test_expression("3,14159");
-    test_expression("2,5*x+1,75");
-    test_expression("0,5^2");
+    test_expression("sin(x)*2+x", PARSER_OK, EVAL_OK);
+    test_expression("9*(theta-pi/2)", PARSER_OK, EVAL_OK);
+    test_expression("2*e^(-t/2)", PARSER_OK, EVAL_OK);
+    test_expression("3,14159", PARSER_OK, EVAL_OK);
+    test_expression("2,5*x+1,75", PARSER_OK, EVAL_OK);
+    test_expression("0,5^2", PARSER_OK, EVAL_OK);
     
     /* TESTE 3: Erros diversos */
     printf("\n\n▶▶▶ TESTES COM ERROS ▶▶▶\n");
     parser_set_locale(LOCALE_POINT);
     
-    test_expression("cossecante(x)");           /* Função desconhecida */
-    test_expression("x + theta");               /* Variáveis misturadas */
-    test_expression("sin(x))");                 /* Parênteses desbalanceados */
-    test_expression("pi + e");                  /* Constantes */
-    test_expression("1/0");                     /* Divisão por zero */
-    test_expression("sqrt(-1)");                /* Domínio inválido */
-    test_expression("log(0)");                  /* Log de zero (infinito negativo) */
+    test_expression("cossecante(x)", PARSER_UNKNOWN_FUNCTION, EVAL_OK);           /* Função desconhecida */
+    test_expression("x + theta", PARSER_MIXED_VARIABLES, EVAL_OK);               /* Variáveis misturadas */
+    test_expression("sin(x))", PARSER_SYNTAX_ERROR, EVAL_OK);                 /* Parênteses desbalanceados */
+    test_expression("pi + e", PARSER_OK, EVAL_OK);                  /* Constantes */
+    test_expression("1/0", PARSER_OK, EVAL_DIVISION_BY_ZERO);                     /* Divisão por zero */
+    test_expression("sqrt(-1)", PARSER_OK, EVAL_DOMAIN_ERROR);                /* Domínio inválido */
+    test_expression("log(0)", PARSER_OK, EVAL_DOMAIN_ERROR);                  /* Log de zero (infinito negativo) */
     
     /* TESTE 4: Novas funções */
     printf("\n\n▶▶▶ TESTES COM NOVAS FUNÇÕES ▶▶▶\n");
     
-    test_expression("log(e)");                  /* log(e) = 1 */
-    test_expression("log10(100)");              /* log10(100) = 2 */
-    test_expression("sinh(0)");                 /* sinh(0) = 0 */
-    test_expression("asin(0.5)");               /* asin(0.5) ≈ 0.523599 (π/6) */
-    test_expression("ceil(2.3)");               /* ceil(2.3) = 3 */
-    test_expression("floor(2.7)");              /* floor(2.7) = 2 */
-    test_expression("frac(3.14)");              /* frac(3.14) = 0.14 */
+    test_expression("log(e)", PARSER_OK, EVAL_OK);                  /* log(e) = 1 */
+    test_expression("log10(100)", PARSER_OK, EVAL_OK);              /* log10(100) = 2 */
+    test_expression("sinh(0)", PARSER_OK, EVAL_OK);                 /* sinh(0) = 0 */
+    test_expression("asin(0.5)", PARSER_OK, EVAL_OK);               /* asin(0.5) ≈ 0.523599 (π/6) */
+    test_expression("ceil(2.3)", PARSER_OK, EVAL_OK);               /* ceil(2.3) = 3 */
+    test_expression("floor(2.7)", PARSER_OK, EVAL_OK);              /* floor(2.7) = 2 */
+    test_expression("frac(3.14)", PARSER_OK, EVAL_OK);              /* frac(3.14) = 0.14 */
     
     printf("\n╔═══════════════════════════════════════════════════════════╗\n");
     printf("║                    Testes Completos                       ║\n");
