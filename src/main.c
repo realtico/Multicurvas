@@ -42,9 +42,8 @@ static void test_expression(const char *expr) {
     printf("✓ Tokenização OK\n");
     debug_print_tokens(&tokens);
     
-    /* Hexdump dos tokens */
-    printf("Hexdump dos tokens:\n");
-    debug_print_hexdump((const unsigned char *)tokens.tokens, tokens.size * sizeof(Token));
+    /* Bytecode compactado */
+    debug_print_bytecode(&tokens);
     
     /* Converte para RPN (stub por enquanto) */
     err = parser_to_rpn(&tokens, &rpn);

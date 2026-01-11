@@ -229,7 +229,6 @@ static ParserError parser_check_syntax(TokenBuffer *tokens) {
     
     for (int i = 0; i < tokens->size - 1; i++) {  /* -1 para pular TOKEN_END */
         TokenType curr = tokens->tokens[i].type;
-        TokenType next = (i + 1 < tokens->size - 1) ? tokens->tokens[i + 1].type : TOKEN_END;
         
         /* Verifica parênteses balanceados */
         if (curr == TOKEN_LPAREN) paren_depth++;

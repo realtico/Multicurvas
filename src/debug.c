@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include "debug.h"
 
@@ -66,4 +67,47 @@ void debug_print_tokens(const TokenBuffer *buf) {
         }
     }
     printf("\n");
+}
+
+/* Gera bytecode compactado (apenas os bytes de tipo, sem padding de struct) */
+void debug_print_bytecode(const TokenBuffer *buf) {
+    if (!buf || !buf->tokens) {
+        printf("TokenBuffer vazia\n");
+        return;
+    }
+    
+    printf("\n--- BYTECODE COMPACTADO ---\n");
+    
+    /* Aloca buffer para bytecode */
+    unsigned char *bytecode = malloc(buf->size);
+    if (!bytecode) {
+        printf("Erro ao alocar memória para bytecode\n");
+        return;
+    }
+    
+    /* Extrai apenas os bytes de TokenType (primeiro byte de cada Token) */
+    for (int i = 0; i < buf->size; i++) {
+        bytecode[i] = (unsigned char)(buf->tokens[i].type & 0xFF);
+    }
+    
+    /* Imprime o bytecode com números de valor (para TOKEN_NUMBER) */
+    printf("Sequência de bytes: ");
+    for (int i = 0; i < buf->size; i++) {
+        printf("%02X ", bytecode[i]);
+    }
+    printf("\n\nInterpretação:\n");
+    
+    for (int i = 0; i < buf->size; i++) {
+        printf("  [%d] 0x%02X = %3d  ← %s", i, bytecode[i], bytecode[i], debug_token_name(buf->tokens[i].type));
+        if (buf->tokens[i].type == TOKEN_NUMBER) {
+            printf(" (valor: %.6g)", buf->tokens[i].value);
+        }
+        printf("\n");
+    }
+    
+    /* Hexdump apenas do bytecode (16 bytes por linha) */
+    printf("\nHex dump compactado:\n");
+    debug_print_hexdump(bytecode, buf->size);
+    
+    free(bytecode);
 }
