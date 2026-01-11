@@ -142,7 +142,7 @@ Este é um projeto educacional. Para adicionar nova funcionalidade:
 
 ## 👤 Autor
 
-- **Nome**: [Seu nome aqui]
+- **Nome**: Hardy Pinto (Realtico)
 - **Data de início**: 2026-01-11
 - **Status**: Em desenvolvimento ativo
 
