@@ -442,6 +442,32 @@ typedef struct {
 
 ---
 
+### Build & Test Framework (PR #1)
+
+O repositório recebeu uma pequena reestruturação para facilitar testes automatizados e o fluxo de build.
+
+- `Makefile` refatorado: alvos unificados e fluxo de testes integrado. Use `make all` para compilar e rodar a suíte demonstrativa.
+- Nova pasta `test/`: contém programas de teste (ex.: `test/unary.c`, `test/benchmark.c`, `test/memory.c`). A fonte principal (`src/`) continua a conter a implementação, enquanto `test/` agrega executáveis de verificação.
+- Targets relevantes (exemplos):
+  - `make all` — compila e executa a suíte de testes demonstrativa (tokenização, RPN, avaliação, análise de memória).
+  - `make benchmark` — compila e executa o benchmark de performance.
+  - `make memtest` — executa o programa de análise de memória.
+  - `make run` — executa o binário principal (quando aplicável).
+
+Como rodar localmente (exemplo):
+```bash
+# compila e roda a suíte demonstrativa
+make all
+
+# apenas benchmark
+make benchmark
+
+# apenas análise de memória
+make memtest
+```
+
+Essas alterações melhoram a testabilidade do projeto e facilitam integração contínua futura.
+
 ## Fluxo de Dados
 
 ```

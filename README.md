@@ -96,7 +96,6 @@ make clean
 Multicurvas/
 ├── src/
 │   ├── main.c           # Programa de teste/protótipo
->>>>>>> ab2979c (Fix: Corrige erros de formatação nos arquivos .md)
 │   ├── main_benchmark.c # Benchmark de performance
 │   ├── benchmark.c      # Testes de integração numérica
 │   ├── memory_test.c    # Análise de uso de memória
@@ -108,6 +107,10 @@ Multicurvas/
 │   ├── parser.h         # Interface do parser
 │   ├── evaluator.h      # Interface do avaliador
 │   └── debug.h          # Funções de debug
+├── test/                # Suíte de testes (unary, benchmark, memory)
+│   ├── unary.c          # Testes de operadores unários
+│   ├── benchmark.c      # Benchmark harness
+│   └── memory.c         # Análise de memória
 ├── build/               # Arquivos compilados (gerado)
 ├── Makefile             # Automação de compilação
 ├── .gitignore           # Exclusões do Git
