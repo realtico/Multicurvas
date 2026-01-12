@@ -13,7 +13,7 @@
 
 #include <stddef.h>
 
-#define PLOT_DEFAULT_SAMPLES 80
+#define PLOT_DEFAULT_SAMPLES 500
 
 typedef enum {
     PLOT_UNKNOWN = 0,
