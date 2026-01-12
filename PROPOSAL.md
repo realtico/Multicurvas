@@ -1,27 +1,28 @@
 
-# Dispatch Table Optimization — Proposal
 
-Status: draft
+# Otimização por Tabela de Dispatch — Proposta
 
-Context
--------
-- Recent changes introduced a unary token (`TOKEN_NEG`) and refactored the evaluator loop. Measured benchmarks show an increase in interpreted overhead (historical ~8.9x → current ~9.5x after micro-optimizations).
-- We explored a `switch`-based refactor and shrinking `Token` layout (to `uint8_t`) which yielded measurable improvements.
+Status: rascunho
 
-Goal
-----
-Document a non-intrusive, future optimization: replace the hot evaluation `switch`/chain-of-ifs with a dispatch-by-function-pointer table indexed by `token.type`.
+Contexto
+--------
+- Mudanças recentes introduziram um token unário (`TOKEN_NEG`) e refatoraram o laço do avaliador. Benchmarks medidos mostram pequeno aumento no overhead interpretado após micro-otimizações.
+- Foi explorado um refactor baseado em `switch` e a redução do layout de `Token` (por exemplo para `uint8_t`), com ganhos observáveis.
 
-Rationale
----------
-- Reduce branch mispredictions in the evaluator hot loop.
-- Provide per-token small handlers (push number, apply add, call sin, etc.) that operate on an explicit stack buffer.
-- Keep source readable/educational: handlers are small, explicit functions. Advanced contributors can implement more aggressive low-level optimizations in a separate fork or branch.
+Objetivo
+--------
+Documentar uma otimização não intrusiva e futura: substituir o `switch`/cadeia de ifs do loop crítico de avaliação por uma tabela de dispatch (ponteiros para funções) indexada por `token.type`.
 
-High level design
------------------
-- A table `TokenHandler handlers[256]` is populated at init.
-- `TokenHandler` signature (example):
+Justificativa
+-----------
+- Diminuir mispredições de branch no laço quente do avaliador.
+- Fornecer handlers pequenos por token (push número, aplicar `+`, chamar `sin`, etc.) que operem diretamente sobre um buffer de pilha explícito.
+- Manter o código legível e educacional: handlers são funções curtas e explícitas; otimizações de baixo nível podem ser feitas em branches separados.
+
+Design de alto nível
+-------------------
+- Uma tabela `TokenHandler handlers[256]` é populada na inicialização.
+- Assinatura de `TokenHandler` (exemplo):
 
 ```c
 typedef EvalError (*TokenHandler)(double *stack, int *stack_top,
@@ -30,11 +31,11 @@ typedef EvalError (*TokenHandler)(double *stack, int *stack_top,
                                   double var_value);
 ```
 
-- Each handler manipulates `stack` and `stack_top` directly and returns an `EvalError`.
-- The evaluator loop becomes: load token, lookup handler, call handler. Handlers for simple ops are short and branch-free.
+- Cada handler manipula `stack` e `stack_top` diretamente e retorna um `EvalError`.
+- O laço do avaliador passa a: carregar token, buscar handler, chamar handler. Handlers para operações simples são curtos e previsíveis.
 
-Example handlers (sketch)
--------------------------
+Exemplos de handlers (esboço)
+-----------------------------
 
 ```c
 static EvalError handle_number(double *stack, int *stack_top, const Token *token, const TokenBuffer *rpn, double var_value) {
@@ -52,34 +53,35 @@ static EvalError handle_plus(double *stack, int *stack_top, const Token *token, 
 }
 ```
 
-Integration notes
------------------
-- Initialize `handlers` at program startup (or lazily) and register handlers for number, variables, constants, binary operators, unary `neg`, and functions.
-- Keep `handlers` initialization readable and linked in `DOCUMENTATION.md` as an optional optimization.
-- This approach introduces one indirect call per token; on modern CPUs a dense, hot table often produces stable predictions and lowers misprediction cost compared to many `if` checks.
+Notas de integração
+-------------------
+- Inicializar `handlers` na inicialização do programa (ou de forma lazy) e registrar handlers para números, variáveis, constantes, operadores binários, `neg` unário e funções.
+- Documentar a inicialização de `handlers` em `DOCUMENTATION.md` como opção de otimização.
+- A abordagem adiciona uma chamada indireta por token; em CPUs modernas uma tabela densa e quente tende a estabilizar previsões e reduzir custo de mispredição comparado a múltiplos `if`.
 
-Tradeoffs & Considerations
--------------------------
-- Pros:
-  - Lower branch misprediction in hot loop
-  - Encapsulated handlers, clear specialization points
-  - Easy to extend with new tokens
-- Cons:
-  - One more level of indirection (function pointer call) — may or may not be cheaper depending on CPU and code layout
-  - Slightly more code to maintain (many small handlers)
-  - Educational clarity vs. micro-optimized code: keep in a separate branch if heavy tuning is applied
+Prós e Contras
+--------------
+- Prós:
+  - Redução potencial de mispredições no laço quente
+  - Handlers encapsulados, pontos claros de especialização
+  - Facilidade para estender com novos tokens
+- Contras:
+  - Indireção extra (chamada por ponteiro de função) — impacto depende de CPU e layout de código
+  - Mais unidades de código para manter (muitos handlers pequenos)
+  - Se necessário, manter uma versão `switch` para legibilidade e fornecer a variante por flag de compilação
 
 Links
 -----
-- Main documentation: [DOCUMENTATION.md](DOCUMENTATION.md)
-- Related benchmark artifacts: `build/benchmark` and `build/benchmark.test` in the repo.
+- Documentação principal: [DOCUMENTATION.md](DOCUMENTATION.md)
+- Artefatos de benchmark: `build/benchmark` e `build/benchmark.test`
 
-Next steps (if we decide to implement)
--------------------------------------
-1. Prototype handlers for the common hot tokens: `NUMBER`, `VARIABLE_*`, `CONST_*`, `+ - * / ^`, `NEG`, and `SIN/COS/EXP`.
-2. Benchmark and compare against `switch`-based evaluator on target machine(s).
-3. If faster, provide the dispatch variant behind a compile-time flag (e.g., `#define USE_DISPATCH`) and keep `switch` version for readability.
+Próximos passos (se decidirmos implementar)
+------------------------------------------
+1. Prototipar handlers para tokens quentes: `NUMBER`, `VARIABLE_*`, `CONST_*`, `+ - * / ^`, `NEG`, `SIN/COS/EXP`.
+2. Medir e comparar contra o avaliador baseado em `switch` na(s) máquina(s) alvo.
+3. Se vantajoso, fornecer a variante de dispatch atrás de uma flag de compilação (por ex. `#define USE_DISPATCH`) e manter `switch` por compatibilidade/legibilidade.
 
-Notes
------
-- As requested, this stays as a documented possibility (educational). Your sibling can fork and implement the dispatch table in a performance-focused fork and submit a PR when ready.
+Observações
+-----------
+- Esta proposta documenta uma possibilidade de otimização com objetivos educacionais e de manutenção. Se desejar, podemos prototipar rapidamente o handler para `NUMBER` e `+` e rodar um benchmark local para comparar.
+

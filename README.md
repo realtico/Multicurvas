@@ -159,19 +159,11 @@ A documentação inclui:
 | Hardcoded | 0.039s | 1.0x |
 | Parseado | 0.101s | 2.56x |
 
+
 **Otimizações implementadas:**
-- Pilha estática sem malloc/free: 2-3x mais rápido
-- Token compacto (8 vs 16 bytes): 50% menos memória, melhor cache
-- Função exp() nativa: 35% mais rápida que e^x   # Funções de debug/visualização
-├── include/
-│   ├── tokens.h     # Definições de tokens
-│   ├── parser.h     # Interface do parser
-│   └── debug.h      # Funções de debug
-├── build/           # Arquivos compilados (gerado)
-├── Makefile         # Automação de compilação
-├── .gitignore       # Exclusões do Git
-└── DOCUMENTATION.md # Documentação técnica detalhada
-```
+- **Pilha estática sem malloc/free:** reduz overhead de alocação, 2–3× ganho de throughput em avaliações hot.
+- **Token compacto (8 vs 16 bytes):** menor uso de memória e melhor localidade de cache, reduzindo falhas de cache.
+- **Funções nativas otimizadas:** implementação direta de operações críticas (ex: `exp`) com ganhos medidos ≈35% em cenários críticos.
 
 ## 📚 Documentação
 
