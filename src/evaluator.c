@@ -11,7 +11,7 @@
 #define MAX_EVAL_STACK_SIZE 64
 
 /* Retorna valor de uma constante */
-static double get_constant_value(TokenType type) {
+static inline double get_constant_value(TokenType type) {
     switch (type) {
         case TOKEN_CONST_PI:
             return M_PI_CUSTOM;
@@ -23,7 +23,7 @@ static double get_constant_value(TokenType type) {
 }
 
 /* Aplica função matemática (token função, argumento) */
-static EvalResult apply_function(TokenType type, double arg) {
+static inline EvalResult apply_function(TokenType type, double arg) {
     EvalResult result = {EVAL_OK, 0.0};
     
     switch (type) {
@@ -135,7 +135,7 @@ static EvalResult apply_function(TokenType type, double arg) {
 }
 
 /* Aplica operador binário (token operador, operando esquerdo, operando direito) */
-static EvalResult apply_operator(TokenType type, double left, double right) {
+static inline EvalResult apply_operator(TokenType type, double left, double right) {
     EvalResult result = {EVAL_OK, 0.0};
     
     switch (type) {
@@ -216,86 +216,100 @@ EvalResult evaluator_eval_rpn(const TokenBuffer *rpn, double var_value) {
     double stack[MAX_EVAL_STACK_SIZE];
     int stack_top = -1;
     
-    /* Processa cada token da expressão RPN */
+    /* Processa cada token da expressão RPN usando switch para reduzir branches */
     for (int i = 0; i < rpn->size; i++) {
         Token token = rpn->tokens[i];
         TokenType type = token.type;
-        
-        /* Fim da expressão */
-        if (type == TOKEN_END) break;
-        
-        /* Número: empilha */
-        if (type == TOKEN_NUMBER) {
-            if (stack_top >= MAX_EVAL_STACK_SIZE - 1) {
-                result.error = EVAL_STACK_ERROR;
-                return result;
-            }
-            /* Busca valor do array separado usando o índice */
-            stack[++stack_top] = rpn->values[token.value_index];
-        }
-        /* Variável: empilha valor fornecido */
-        else if (is_variable(type)) {
-            if (stack_top >= MAX_EVAL_STACK_SIZE - 1) {
-                result.error = EVAL_STACK_ERROR;
-                return result;
-            }
-            stack[++stack_top] = var_value;
-        }
-        /* Constante: empilha valor */
-        else if (is_constant(type)) {
-            if (stack_top >= MAX_EVAL_STACK_SIZE - 1) {
-                result.error = EVAL_STACK_ERROR;
-                return result;
-            }
-            stack[++stack_top] = get_constant_value(type);
-        }
-        /* Operador binário: desempilha 2, calcula, empilha */
-        else if (is_binary_operator(type)) {
-            if (stack_top < 1) {
-                /* Pilha insuficiente */
-                result.error = EVAL_STACK_ERROR;
-                return result;
-            }
-            
-            double right = stack[stack_top--];
-            double left = stack[stack_top--];
-            
-            EvalResult op_result = apply_operator(type, left, right);
-            if (op_result.error != EVAL_OK) {
-                return op_result;
-            }
-            
-            stack[++stack_top] = op_result.value;
-        }
-        /* Operador unário (ex: NEG): desempilha 1, aplica e empilha */
-        else if (is_unary_operator(type)) {
-            if (stack_top < 0) {
-                result.error = EVAL_STACK_ERROR;
-                return result;
-            }
 
-            double arg = stack[stack_top--];
-            /* Apenas negação por enquanto */
-            stack[++stack_top] = -arg;
-        }
-        /* Função unária: desempilha 1, calcula, empilha */
-        else if (is_unary_function(type)) {
-            if (stack_top < 0) {
-                /* Pilha vazia */
-                result.error = EVAL_STACK_ERROR;
+        switch (type) {
+            case TOKEN_END:
+                goto evaluation_end;
+
+            case TOKEN_NUMBER:
+                if (stack_top >= MAX_EVAL_STACK_SIZE - 1) {
+                    result.error = EVAL_STACK_ERROR;
+                    return result;
+                }
+                stack[++stack_top] = rpn->values[token.value_index];
+                break;
+
+            case TOKEN_VARIABLE_X:
+            case TOKEN_VARIABLE_THETA:
+            case TOKEN_VARIABLE_T:
+                if (stack_top >= MAX_EVAL_STACK_SIZE - 1) {
+                    result.error = EVAL_STACK_ERROR;
+                    return result;
+                }
+                stack[++stack_top] = var_value;
+                break;
+
+            case TOKEN_CONST_PI:
+            case TOKEN_CONST_E:
+                if (stack_top >= MAX_EVAL_STACK_SIZE - 1) {
+                    result.error = EVAL_STACK_ERROR;
+                    return result;
+                }
+                stack[++stack_top] = get_constant_value(type);
+                break;
+
+            /* Operadores binários */
+            case TOKEN_PLUS:
+            case TOKEN_MINUS:
+            case TOKEN_MULT:
+            case TOKEN_DIV:
+            case TOKEN_POW:
+                if (stack_top < 1) {
+                    result.error = EVAL_STACK_ERROR;
+                    return result;
+                }
+                {
+                    double right = stack[stack_top--];
+                    double left = stack[stack_top--];
+                    EvalResult op_result = apply_operator(type, left, right);
+                    if (op_result.error != EVAL_OK) return op_result;
+                    stack[++stack_top] = op_result.value;
+                }
+                break;
+
+            /* Operador unário (NEG) */
+            case TOKEN_NEG:
+                if (stack_top < 0) {
+                    result.error = EVAL_STACK_ERROR;
+                    return result;
+                }
+                {
+                    double arg = stack[stack_top--];
+                    stack[++stack_top] = -arg;
+                }
+                break;
+
+            /* Funções unárias (lista explícita) */
+            case TOKEN_SIN: case TOKEN_COS: case TOKEN_TAN: case TOKEN_ABS:
+            case TOKEN_SQRT: case TOKEN_EXP: case TOKEN_LOG: case TOKEN_LOG10:
+            case TOKEN_SINH: case TOKEN_COSH: case TOKEN_TANH:
+            case TOKEN_ASIN: case TOKEN_ACOS: case TOKEN_ATAN:
+            case TOKEN_ASINH: case TOKEN_ACOSH: case TOKEN_ATANH:
+            case TOKEN_CEIL: case TOKEN_FLOOR: case TOKEN_FRAC:
+                if (stack_top < 0) {
+                    result.error = EVAL_STACK_ERROR;
+                    return result;
+                }
+                {
+                    double arg = stack[stack_top--];
+                    EvalResult func_result = apply_function(type, arg);
+                    if (func_result.error != EVAL_OK) return func_result;
+                    stack[++stack_top] = func_result.value;
+                }
+                break;
+
+            default:
+                /* Token desconhecido */
+                result.error = EVAL_MATH_ERROR;
                 return result;
-            }
-            
-            double arg = stack[stack_top--];
-            
-            EvalResult func_result = apply_function(type, arg);
-            if (func_result.error != EVAL_OK) {
-                return func_result;
-            }
-            
-            stack[++stack_top] = func_result.value;
         }
     }
+
+evaluation_end: ;
     
     /* Deve sobrar exatamente 1 valor na pilha */
     if (stack_top != 0) {

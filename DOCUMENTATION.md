@@ -39,39 +39,52 @@ typedef enum {
 ##### `enum TokenType`
 ```c
 typedef enum {
-    /* Operadores (0-127, ASCII direto) */
-    TOKEN_PLUS       = '+',    /* 43  */
-    TOKEN_MINUS      = '-',    /* 45  */
-    TOKEN_MULT       = '*',    /* 42  */
-    TOKEN_DIV        = '/',    /* 47  */
-    TOKEN_POW        = '^',    /* 94  */
-    TOKEN_LPAREN     = '(',    /* 40  */
-    TOKEN_RPAREN     = ')',    /* 41  */
-    
-    /* Especiais (>= 128) */
-    TOKEN_NUMBER     = 128,    /* Número literal (valor em Token.value) */
-    
-    /* Variáveis: range 129-138 (10 slots) */
-    TOKEN_VARIABLE_X = 129,    /* Variável x */
-    TOKEN_VARIABLE_THETA = 130,/* Variável theta */
-    TOKEN_VARIABLE_T = 131,    /* Variável t */
-    
-    /* Constantes: range 140-159 (20 slots) */
-    TOKEN_CONST_PI   = 140,    /* Constante π */
-    TOKEN_CONST_E    = 141,    /* Constante e */
-    
-    /* Funções: range 160-199 (40 slots) */
-    TOKEN_SIN        = 160,    /* Função sin() */
-    TOKEN_COS        = 161,    /* Função cos() */
-    TOKEN_TAN        = 162,    /* Função tan() */
-    TOKEN_ABS        = 163,    /* Função abs() */
-    TOKEN_SQRT       = 164,    /* Função sqrt() */
-    TOKEN_EXP        = 165,    /* Função exp() - exponencial (e^x) */
-    TOKEN_LOG        = 166,    /* Função log() - logaritmo natural */
-    TOKEN_LOG10      = 167,    /* Função log10() - logaritmo base 10 */
-    
-    TOKEN_END        = 255,    /* Marcador de fim de expressão */
-    TOKEN_ERROR      = 256     /* Erro (nunca apareça em output válido) */
+  /* Operadores (ASCII) */
+  TOKEN_PLUS       = '+',
+  TOKEN_MINUS      = '-',
+  TOKEN_MULT       = '*',
+  TOKEN_DIV        = '/',
+  TOKEN_POW        = '^',
+  TOKEN_LPAREN     = '(',
+  TOKEN_RPAREN     = ')',
+
+  /* Literais e especiais a partir de 128 */
+  TOKEN_NUMBER     = 128,
+
+  /* Variáveis: range 129-138 (10 slots) */
+  TOKEN_VARIABLE_X = 129,
+  TOKEN_VARIABLE_THETA = 130,
+  TOKEN_VARIABLE_T = 131,
+
+  /* Constantes: range 140-159 (20 slots) */
+  TOKEN_CONST_PI   = 140,
+  TOKEN_CONST_E    = 141,
+
+  /* Funções: range 160-199 (40 slots) */
+  TOKEN_SIN        = 160,
+  TOKEN_COS        = 161,
+  TOKEN_TAN        = 162,
+  TOKEN_ABS        = 163,
+  TOKEN_SQRT       = 164,
+  TOKEN_EXP        = 165,
+  TOKEN_LOG        = 166,
+  TOKEN_LOG10      = 167,
+  TOKEN_SINH       = 168,
+  TOKEN_COSH       = 169,
+  TOKEN_TANH       = 170,
+  TOKEN_ASIN       = 171,
+  TOKEN_ACOS       = 172,
+  TOKEN_ATAN       = 173,
+  TOKEN_ASINH      = 174,
+  TOKEN_ACOSH      = 175,
+  TOKEN_ATANH      = 176,
+  TOKEN_CEIL       = 177,
+  TOKEN_FLOOR      = 178,
+  TOKEN_FRAC       = 179,
+  TOKEN_NEG        = 180,
+
+  TOKEN_END        = 255,  /* Fim da expressão */
+  TOKEN_ERROR      = 254   /* Erro de parsing (reservado) */
 } TokenType;
 ```
 
@@ -83,15 +96,15 @@ typedef enum {
    (Otimizado)
 ```c
 typedef struct {
-    TokenType type;         /* Tipo do token (4 bytes) */
-    uint16_t value_index;   /* Índice no array de valores (2 bytes) */
-} Token;                    /* Total: 8 bytes (com padding) */
+  uint8_t type;          /* Armazenado em 1 byte para melhor densidade de cache */
+  uint16_t value_index;  /* Índice no array de valores (apenas para TOKEN_NUMBER) */
+} Token; /* Total: 3 bytes (packed; alinhamento da struct depende da plataforma) */
 ```
 
-- **Finalidade**: Representar um token individual de forma compacta
-- **type**: Qual tipo de token é
+- **Finalidade**: Representar um token individual de forma muito compacta
+- **type**: Armazenado como `uint8_t` (1 byte) para melhorar densidade por cache line
 - **value_index**: Se `type == TOKEN_NUMBER`, índice no array separado de valores; caso contrário, não usado
-- **Otimização**: Redução de 16 bytes → 8 bytes por token (50% de economia)
+- **Otimização**: Token compacto reduz uso de memória e melhora locality durante avaliação
 - **Exemplo**: `{TOKEN_NUMBER, 0}` (valor está em `values[0]`) ou `{TOKEN_SIN, 0}`
 
 **Por que separar valores?**
@@ -399,6 +412,8 @@ typedef struct {
      - Operador → desempilha 2, calcula, empilha
      - Função → desempilha 1, calcula, empilha
   3. Retorna valor final (deve sobrar exatamente 1 na pilha)
+
+- **Implementação/Performance**: As rotinas quentes do avaliador (`apply_operator`, `apply_function`, etc.) são marcadas como `static inline` e o laço de execução usa um `switch` sobre `token.type`. Além disso, `Token.type` é armazenado como `uint8_t` para aumentar a densidade por cache line e reduzir mispredições de branch.
 - **Exemplo**:
   ```c
   TokenBuffer rpn;
